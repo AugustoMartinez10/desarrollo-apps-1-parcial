@@ -41,6 +41,30 @@
 - Solución: se centralizó la regla en una única función pura `isInAlarm()` en `src/domain/rules.ts` y se usa en los tres lugares. A la WebView se le pasa el campo `alarm` ya calculado, en vez de repetir la lógica dentro del HTML. Además, al ser una función pura sin dependencias de UI ni de SQLite, se puede probar de forma aislada.
 - Evidencia: con equipos activados el comportamiento es el mismo que antes. Apagando un equipo que supera su límite, ahora la tarjeta, el contador y el panel HTML coinciden (ninguno marca alarma). `npm run typecheck` sin errores.
 
+## Evidencia de los flujos (capturas)
+
+Capturas tomadas en el emulador Android (Pixel 8, API 34), en la carpeta `capturas/`.
+
+### Flujo umbral + alarma
+
+| # | Paso | Captura |
+|---|---|---|
+| 0 | Estado inicial: P-101 con límite 65 °C, sin alarmas | ![](capturas/00-estado-inicial.png) |
+| 1 | Umbral inválido (`200`): no se guarda y se informa el error | ![](capturas/01-umbral-invalido.png) |
+| 2 | Umbral válido (`40`) menor que la temperatura: contador en 1 y barra naranja en el panel HTML | ![](capturas/02-alarma-panel.png) |
+| 3 | Tarjeta de P-101 en ALARMA con el límite nuevo | ![](capturas/03-alarma-tarjeta.png) |
+| 4 | P-101 apagado: queda DETENIDO aunque supere el límite | ![](capturas/04-equipo-detenido.png) |
+| 5 | Panel y contador sin alarma con el equipo apagado | ![](capturas/05-panel-sin-alarma.png) |
+
+### Flujo simulación/sincronización + historial
+
+| # | Paso | Captura |
+|---|---|---|
+| 6a | Sincronizar API: referencia recibida por HTTP y guardada | ![](capturas/06a-sincronizacion-api-ok.png) |
+| 6b | Humedad exterior obtenida de la API | ![](capturas/06b-sincronizacion-humedad.png) |
+| 7 | Historial de P-101: lecturas de "Simular ciclo", de la más nueva a la más vieja | ![](capturas/07-historial-p101.png) |
+| 8 | Historial de A-003: lecturas de "Sincronizar API" | ![](capturas/08-historial-a003.png) |
+
 ## Nota sobre `npm run typecheck`
 
 - El proyecto original ya tenía un error de tipos que no viene de estos cambios: en `PlantScreen.tsx`, `<StatusBar backgroundColor={...} />` usa una prop que React Native 0.88 ya no admite (la app es edge-to-edge y el fondo lo pone la vista). Se quitó esa prop sin cambio visible, y `npm run typecheck` queda sin errores.
