@@ -10,10 +10,10 @@
   - `src/views/PlantScreen.tsx`: el botón **Umbral** abre el formulario del equipo de esa tarjeta.
   - Al actualizarse `items`, se recalcula la alarma de la tarjeta, el contador de alarmas y el panel HTML (la WebView se regenera porque depende de `items`).
 - Verificación:
-  - Valores inválidos (`0`, `-5`, `151`, `abc`, vacío): no se guardan y se muestra el error en el formulario.
-  - Valor válido (por ejemplo bajar el límite de P-101 por debajo de su temperatura): la tarjeta pasa a **ALARMA**, sube el contador y la barra del panel HTML se marca en naranja.
-  - Apagando el equipo con el switch, la alarma desaparece (solo hay alarma si está activado).
-  - Se cerró y volvió a abrir la app: el límite nuevo se mantiene (queda guardado en SQLite).
+  - Probé valores inválidos (`200` y `abc`): no se guardan y aparece el error en el formulario.
+  - Con un límite menor a la temperatura (P-101 en 40) la tarjeta pasa a **ALARMA**, sube el contador y la barra del panel HTML se pone naranja.
+  - Apagando el equipo con el switch la alarma desaparece.
+  - Recargué la app y el límite nuevo se mantiene.
 
 ## Funcionalidad 2 — Historial
 
@@ -24,22 +24,21 @@
   - `src/views/PlantScreen.tsx`: el botón **Historial** abre el historial del equipo de esa tarjeta.
   - Las lecturas ya se guardaban en la tabla `readings` desde `recordReading`, que usan tanto **Simular ciclo** (origen "simulación") como **Sincronizar API** (origen "API ambiental").
 - Verificación:
-  - Con la base recién creada, el historial muestra el estado vacío.
-  - Después de varias simulaciones y sincronizaciones aparecen las lecturas ordenadas de la más nueva a la más vieja, con máximo 10 registros.
-  - A-003 muestra las lecturas de origen "API ambiental"; P-101 y M-204 las de "simulación".
-  - Se reinició la app y el historial se conserva.
+  - Antes de sincronizar, el historial de A-003 muestra el estado vacío.
+  - Después de simular y sincronizar, P-101 muestra lecturas de origen "simulación" y A-003 de origen "API ambiental", de la más nueva a la más vieja.
+  - Recargué la app y el historial se conserva.
 
 ## Refactorización A — SQL injection en la búsqueda
 
 - Problema: en `src/data/localDb.ts`, `findEquipment` armaba el SQL concatenando el texto del buscador (`LIKE '%${filter}%'`). Un texto como `' OR 1=1 --` modifica la consulta (inyección SQL) y una comilla simple sola rompía la búsqueda.
 - Solución: se pasó a consulta parametrizada (`WHERE name LIKE ? OR id LIKE ?` con el patrón `%texto%` como parámetro). El motor trata el valor como dato y no como parte del SQL. Sin filtro se usa una consulta fija.
-- Evidencia: la búsqueda por código y por nombre devuelve los mismos resultados que antes (ej. "P-1", "motor"); con el campo vacío se listan los tres equipos; buscar `'` o `' OR 1=1 --` ya no rompe ni altera la consulta (muestra "No se encontraron equipos").
+- Evidencia: la búsqueda sigue funcionando igual que antes: escribiendo `p-1` filtra solo P-101 (captura `capturas/09-busqueda.png`) y con el campo vacío se listan los tres equipos.
 
 ## Refactorización B — Regla de alarma duplicada e inconsistente
 
 - Problema: la condición de alarma estaba copiada en tres lugares (`EquipmentCard` y el contador en `src/views/PlantScreen.tsx`, y el panel en `src/components/OverviewWeb.tsx`). La copia del panel HTML no tenía en cuenta si el equipo estaba activado: marcaba en naranja equipos **detenidos**, contradiciendo la regla (alarma solo si está activado y `temperatura >= límite`).
-- Solución: se centralizó la regla en una única función pura `isInAlarm()` en `src/domain/rules.ts` y se usa en los tres lugares. A la WebView se le pasa el campo `alarm` ya calculado, en vez de repetir la lógica dentro del HTML. Además, al ser una función pura sin dependencias de UI ni de SQLite, se puede probar de forma aislada.
-- Evidencia: con equipos activados el comportamiento es el mismo que antes. Apagando un equipo que supera su límite, ahora la tarjeta, el contador y el panel HTML coinciden (ninguno marca alarma). `npm run typecheck` sin errores.
+- Solución: se centralizó la regla en una única función pura `isInAlarm()` en `src/domain/rules.ts` y se usa en los tres lugares. A la WebView se le pasa el campo `alarm` ya calculado, en vez de repetir la lógica dentro del HTML.
+- Evidencia: con equipos activados el comportamiento es el mismo que antes. Apagando un equipo que supera su límite, ahora la tarjeta, el contador y el panel HTML coinciden (ninguno marca alarma).
 
 ## Evidencia de los flujos (capturas)
 
