@@ -64,18 +64,3 @@ Capturas tomadas en el emulador Android (Pixel 8, API 34), en la carpeta `captur
 | 6b | Humedad exterior obtenida de la API | ![](capturas/06b-sincronizacion-humedad.png) |
 | 7 | Historial de P-101: lecturas de "Simular ciclo", de la más nueva a la más vieja | ![](capturas/07-historial-p101.png) |
 | 8 | Historial de A-003: lecturas de "Sincronizar API" | ![](capturas/08-historial-a003.png) |
-
-## Nota sobre `npm run typecheck`
-
-- El proyecto original ya tenía un error de tipos que no viene de estos cambios: en `PlantScreen.tsx`, `<StatusBar backgroundColor={...} />` usa una prop que React Native 0.88 ya no admite (la app es edge-to-edge y el fondo lo pone la vista). Se quitó esa prop sin cambio visible, y `npm run typecheck` queda sin errores.
-
-## Otros problemas observados (no modificados)
-
-- **Sincronizar API** también ejecuta una simulación antes de consultar la API (`usePlantViewModel.ts`), mezclando dos responsabilidades; y si falla la API, el `catch` descarta el error real.
-- `recordReading` hace dos escrituras (UPDATE + INSERT) sin transacción: si falla la segunda, quedan inconsistentes.
-- La búsqueda consulta la base en cada tecla y las respuestas pueden llegar desordenadas.
-
-## Uso de IA (opcional)
-
-- Herramienta utilizada:
-- Qué acepté, revisé o corregí:
